@@ -1,16 +1,30 @@
 const express = require("express");
 const router = express.Router();
 const notesController = require("../controllers/notesController");
+const verifyJWT = require("../middleware/verifyJWT");
 
-router.get("/notes", notesController.getAllNotes);
-router.post("/notes", notesController.createNewNote);
-router.put("/notes", notesController.updateNote);
-router.delete("/notes", notesController.deleteNote);
-router.get("/notes/archived", notesController.getArchivedNotes);
-router.get("/notes/trash", notesController.getTrashedNotes);
-router.post("/notes/restore", notesController.restoreTrashedNote);
-router.get("/notes/search", notesController.searchNotes);
-router.get("/notes/tag/:tag", notesController.getNotesByTag);
-router.put("/notes/background", notesController.updateNoteBackgroundColor);
+router.use(verifyJWT);
+
+router
+  .route("/")
+  .get(notesController.getAllNotes)
+  .post(notesController.createNewNote)
+  .put(notesController.updateNote)
+  .delete(notesController.deleteNote);
+
+router
+  .route("/archived")
+  .get(notesController.getArchivedNotes)
+  .put(notesController.archiveNotes);
+
+router.route("/trash").get(notesController.getTrashedNotes);
+
+router.route("/restore").post(notesController.restoreTrashedNote);
+
+router.route("/search").get(notesController.searchNotes);
+
+router.route("/tag/:tag").get(notesController.getNotesByTag);
+
+router.route("/background").put(notesController.updateNoteBackgroundColor);
 
 module.exports = router;

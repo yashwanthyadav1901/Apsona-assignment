@@ -13,7 +13,7 @@ const getAllUsers = async (req, res) => {
 };
 
 const createNewUser = async (req, res) => {
-  const { username, password, roles } = req.body;
+  const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ message: "All fields are required" });
@@ -30,10 +30,7 @@ const createNewUser = async (req, res) => {
 
   const hashedPwd = await bcrypt.hash(password, 10);
 
-  const userObject =
-    !Array.isArray(roles) || !roles.length
-      ? { username, password: hashedPwd }
-      : { username, password: hashedPwd, roles };
+  const userObject = { username, password: hashedPwd };
 
   const user = await User.create(userObject);
 
@@ -45,15 +42,9 @@ const createNewUser = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-  const { id, username, roles, active, password } = req.body;
+  const { id, username, active, password } = req.body;
 
-  if (
-    !id ||
-    !username ||
-    !Array.isArray(roles) ||
-    !roles.length ||
-    typeof active !== "boolean"
-  ) {
+  if (!id || !username || typeof active !== "boolean") {
     return res
       .status(400)
       .json({ message: "All fields except password are required" });
@@ -75,7 +66,6 @@ const updateUser = async (req, res) => {
   }
 
   user.username = username;
-  user.roles = roles;
   user.active = active;
 
   if (password) {

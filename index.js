@@ -4,11 +4,24 @@ const connectDB = require("./config/dbConfig");
 const app = express();
 const path = require("path");
 const mongoose = require("mongoose");
+const cron = require("node-cron");
 port = process.env.PORT;
 
 connectDB();
 
 app.use(express.json());
+cron.schedule("0 0 * * *", async () => {
+  try {
+    const now = new Date();
+    const result = await Note.deleteMany({
+      isTrashed: true,
+      trashUntil: { $lte: now },
+    });
+    console.log(`Deleted ${result.deletedCount} trashed notes`);
+  } catch (error) {
+    console.error("Error deleting trashed notes:", error);
+  }
+});
 
 app.use(express.static(path.join(__dirname, "public")));
 

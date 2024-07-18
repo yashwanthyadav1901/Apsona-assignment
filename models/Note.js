@@ -30,6 +30,10 @@ const noteSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  trashUntil: {
+    type: Date,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

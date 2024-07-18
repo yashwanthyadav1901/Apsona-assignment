@@ -23,7 +23,6 @@ const register = async (req, res) => {
     const newUser = await User.create({
       username,
       password: hashedPwd,
-      roles: ["Employee"], // default role
     });
 
     // Generate tokens
@@ -31,7 +30,6 @@ const register = async (req, res) => {
       {
         UserInfo: {
           username: newUser.username,
-          roles: newUser.roles,
         },
       },
       process.env.ACCESS_TOKEN_SECRET,
@@ -44,15 +42,13 @@ const register = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // Create secure cookie with refresh token
     res.cookie("jwt", refreshToken, {
-      httpOnly: true, // accessible only by web server
-      secure: true, // https
-      sameSite: "None", // cross-site cookie
-      maxAge: 7 * 24 * 60 * 60 * 1000, // cookie expiry: set to match rT
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Send accessToken containing username and roles
     res.status(201).json({ accessToken });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -80,7 +76,6 @@ const login = async (req, res) => {
     {
       UserInfo: {
         username: foundUser.username,
-        roles: foundUser.roles,
       },
     },
     process.env.ACCESS_TOKEN_SECRET,
@@ -93,15 +88,13 @@ const login = async (req, res) => {
     { expiresIn: "7d" }
   );
 
-  // Create secure cookie with refresh token
   res.cookie("jwt", refreshToken, {
-    httpOnly: true, //accessible only by web server
-    secure: true, //https
-    sameSite: "None", //cross-site cookie
-    maxAge: 7 * 24 * 60 * 60 * 1000, //cookie expiry: set to match rT
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  // Send accessToken containing username and roles
   res.json({ accessToken });
 };
 

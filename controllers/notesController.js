@@ -100,17 +100,61 @@ const deleteNote = async (req, res) => {
     return res.status(400).json({ message: "Note ID required" });
   }
 
-  const note = await Note.findById(id).exec();
+  try {
+    const note = await Note.findById(id).exec();
 
-  if (!note) {
-    return res.status(400).json({ message: "Note not found" });
+    if (!note) {
+      return res.status(400).json({ message: "Note not found" });
+    }
+
+    note.isTrashed = true;
+    note.trashUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+
+    const result = await note.save();
+
+    const reply = `Note '${result.title}' with ID ${result._id} deleted and moved to trash`;
+
+    res.json(reply);
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        message: "An error occurred while deleting note and moving to trash",
+        error,
+      });
+  }
+};
+
+const archiveNotes = async (req, res) => {
+  let { ids } = req.body;
+  console.log(ids);
+
+  if (!Array.isArray(ids)) {
+    ids = [ids];
   }
 
-  const result = await note.deleteOne();
+  if (!ids.every((id) => typeof id === "string")) {
+    return res
+      .status(400)
+      .json({ message: "Array of valid note IDs is required" });
+  }
 
-  const reply = `Note '${result.title}' with ID ${result._id} deleted`;
+  try {
+    const result = await Note.updateMany(
+      { _id: { $in: ids } },
+      { $set: { isArchived: true } }
+    );
 
-  res.json(reply);
+    if (result.nModified === 0) {
+      return res.status(400).json({ message: "No notes were archived" });
+    }
+
+    res.status(200).json({ message: "Notes archived successfully" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "An error occurred while archiving notes", error });
+  }
 };
 
 const getArchivedNotes = async (req, res) => {
@@ -238,6 +282,7 @@ module.exports = {
   createNewNote,
   updateNote,
   deleteNote,
+  archiveNotes,
   getArchivedNotes,
   getTrashedNotes,
   restoreTrashedNote,
