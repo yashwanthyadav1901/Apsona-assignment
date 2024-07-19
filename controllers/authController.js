@@ -2,6 +2,7 @@ const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
+// Registration function
 const register = async (req, res) => {
   const { username, password } = req.body;
 
@@ -29,6 +30,7 @@ const register = async (req, res) => {
     const accessToken = jwt.sign(
       {
         UserInfo: {
+          userId: newUser._id,
           username: newUser.username,
         },
       },
@@ -37,7 +39,7 @@ const register = async (req, res) => {
     );
 
     const refreshToken = jwt.sign(
-      { username: newUser.username },
+      { userId: newUser._id, username: newUser.username },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
@@ -55,6 +57,7 @@ const register = async (req, res) => {
   }
 };
 
+// Login function
 const login = async (req, res) => {
   const { username, password } = req.body;
 
@@ -64,7 +67,7 @@ const login = async (req, res) => {
 
   const foundUser = await User.findOne({ username }).exec();
 
-  if (!foundUser || !foundUser.active) {
+  if (!foundUser) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
@@ -75,6 +78,7 @@ const login = async (req, res) => {
   const accessToken = jwt.sign(
     {
       UserInfo: {
+        userId: foundUser._id,
         username: foundUser.username,
       },
     },
@@ -83,7 +87,7 @@ const login = async (req, res) => {
   );
 
   const refreshToken = jwt.sign(
-    { username: foundUser.username },
+    { userId: foundUser._id, username: foundUser.username },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: "7d" }
   );
@@ -98,6 +102,7 @@ const login = async (req, res) => {
   res.json({ accessToken });
 };
 
+// Token refresh function
 const refresh = (req, res) => {
   const cookies = req.cookies;
 
@@ -120,6 +125,7 @@ const refresh = (req, res) => {
       const accessToken = jwt.sign(
         {
           UserInfo: {
+            userId: foundUser._id,
             username: foundUser.username,
             roles: foundUser.roles,
           },
@@ -133,9 +139,10 @@ const refresh = (req, res) => {
   );
 };
 
+// Logout function
 const logout = (req, res) => {
   const cookies = req.cookies;
-  if (!cookies?.jwt) return res.sendStatus(204); //No content
+  if (!cookies?.jwt) return res.sendStatus(204); // No content
   res.clearCookie("jwt", { httpOnly: true, sameSite: "None", secure: true });
   res.json({ message: "Cookie cleared" });
 };

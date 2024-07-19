@@ -13,7 +13,7 @@ router
   .delete(notesController.deleteNote);
 
 router
-  .route("/archived")
+  .route("/archive")
   .get(notesController.getArchivedNotes)
   .put(notesController.archiveNotes);
 

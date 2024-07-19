@@ -5,9 +5,13 @@ const app = express();
 const path = require("path");
 const mongoose = require("mongoose");
 const cron = require("node-cron");
+const cors = require("cors");
+const corsOptions = require("./config/corsOptions");
 port = process.env.PORT;
 
 connectDB();
+
+app.use(cors(corsOptions));
 
 app.use(express.json());
 cron.schedule("0 0 * * *", async () => {
@@ -49,5 +53,5 @@ mongoose.connection.once("open", () => {
 });
 
 mongoose.connection.on("error", () => {
-  console.log(err);
+  console.log(error);
 });

@@ -2,24 +2,40 @@ const Note = require("../models/Note");
 const User = require("../models/User");
 
 const getAllNotes = async (req, res) => {
-  const notes = await Note.find().lean();
+  try {
+    const userId = req.userId; // Get the user ID from the middleware
 
-  if (!notes?.length) {
-    return res.status(400).json({ message: "No notes found" });
+    // Get all notes of the current user from MongoDB, excluding archived and trashed notes
+    const notes = await Note.find({
+      userId: userId,
+      isArchived: false,
+      isTrashed: false,
+    }).lean();
+
+    // If no notes found, return a 400 status with a message
+    if (!notes?.length) {
+      return res.status(400).json({ message: "No notes found" });
+    }
+
+    // Add username to each note before sending the response
+    const notesWithUser = await Promise.all(
+      notes.map(async (note) => {
+        const user = await User.findById(note.user).lean().exec();
+        return { ...note }; // Assuming the User model has a 'username' field
+      })
+    );
+
+    // Send the notes with username added to each note
+    res.json(notesWithUser);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
-
-  const notesWithUser = await Promise.all(
-    notes.map(async (note) => {
-      const user = await User.findById(note.userId).lean().exec();
-      return { ...note, username: user.username };
-    })
-  );
-
-  res.json(notesWithUser);
 };
 
 const createNewNote = async (req, res) => {
-  const { userId, title, content, tags, backgroundColor } = req.body;
+  const userId = req.userId;
+  const { title, content, tags, backgroundColor } = req.body;
 
   if (!userId || !title || !content) {
     return res.status(400).json({ message: "All fields are required" });
@@ -116,12 +132,10 @@ const deleteNote = async (req, res) => {
 
     res.json(reply);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "An error occurred while deleting note and moving to trash",
-        error,
-      });
+    res.status(500).json({
+      message: "An error occurred while deleting note and moving to trash",
+      error,
+    });
   }
 };
 
@@ -158,17 +172,24 @@ const archiveNotes = async (req, res) => {
 };
 
 const getArchivedNotes = async (req, res) => {
-  const notes = await Note.find({ isArchived: true }).lean();
+  try {
+    const userId = req.userId; // Assumes user ID is available in req.user
 
-  if (!notes?.length) {
-    return res.status(400).json({ message: "No archived notes found" });
+    const notes = await Note.find({ userId: userId, isArchived: true }).lean();
+
+    if (!notes.length) {
+      return res.status(400).json({ message: "No archived notes found" });
+    }
+
+    res.json(notes);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
-
-  res.json(notes);
 };
 
 const getTrashedNotes = async (req, res) => {
-  const notes = await Note.find({ isTrashed: true }).lean();
+  const userId = req.userId;
+  const notes = await Note.find({ userId: userId, isTrashed: true }).lean();
 
   if (!notes?.length) {
     return res.status(400).json({ message: "No trashed notes found" });
@@ -229,13 +250,14 @@ const searchNotes = async (req, res) => {
 };
 
 const getNotesByTag = async (req, res) => {
+  const userId = req.userId;
   const { tag } = req.params;
 
   if (!tag) {
     return res.status(400).json({ message: "Tag parameter is required" });
   }
 
-  const notes = await Note.find({ tags: tag }).lean();
+  const notes = await Note.find({ userId: userId, tags: tag }).lean();
 
   if (!notes?.length) {
     return res
@@ -246,7 +268,7 @@ const getNotesByTag = async (req, res) => {
   const notesWithUser = await Promise.all(
     notes.map(async (note) => {
       const user = await User.findById(note.userId).lean().exec();
-      return { ...note, username: user.username };
+      return { ...note };
     })
   );
 
@@ -255,6 +277,7 @@ const getNotesByTag = async (req, res) => {
 
 const updateNoteBackgroundColor = async (req, res) => {
   const { id, backgroundColor } = req.body;
+  console.log(id, backgroundColor);
 
   if (!id || !backgroundColor) {
     return res
