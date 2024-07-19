@@ -41,7 +41,7 @@ const createNewNote = async (req, res) => {
     return res.status(400).json({ message: "All fields are required" });
   }
 
-  const duplicate = await Note.findOne({ title })
+  const duplicate = await Note.findOne({ userId, title })
     .collation({ locale: "en", strength: 2 })
     .lean()
     .exec();
