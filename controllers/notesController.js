@@ -41,6 +41,7 @@ const createNewNote = async (req, res) => {
     return res.status(400).json({ message: "All fields are required" });
   }
 
+  // Check for duplicate note title for the current user only
   const duplicate = await Note.findOne({ userId, title })
     .collation({ locale: "en", strength: 2 })
     .lean()
@@ -50,18 +51,22 @@ const createNewNote = async (req, res) => {
     return res.status(409).json({ message: "Duplicate note title" });
   }
 
-  const note = await Note.create({
-    userId,
-    title,
-    content,
-    tags,
-    backgroundColor,
-  });
+  try {
+    const note = await Note.create({
+      userId,
+      title,
+      content,
+      tags,
+      backgroundColor,
+    });
 
-  if (note) {
-    return res.status(201).json({ message: "New note created" });
-  } else {
-    return res.status(400).json({ message: "Invalid note data received" });
+    if (note) {
+      return res.status(201).json({ message: "New note created" });
+    } else {
+      return res.status(400).json({ message: "Invalid note data received" });
+    }
+  } catch (err) {
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
